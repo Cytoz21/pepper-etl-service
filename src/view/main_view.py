@@ -27,19 +27,38 @@ class MainView:
     
     def _create_components(self):
         """Create UI components"""
+        # Logo
+        self.logo = ft.Image(
+            src="src/assets/danper-logo.png",
+            width=80,
+            height=80,
+            fit=ft.ImageFit.CONTAIN
+        )
+        
+        # Company name
+        self.company_name = ft.Text(
+            "DANPER",
+            size=12,
+            weight=ft.FontWeight.BOLD,
+            color="#c41a1d",  # Dark red for company name
+            text_align=ft.TextAlign.CENTER
+        )
+        
         # Title
         self.title = ft.Text(
             "Descargador de Reportes de Fitosanidad",
-            size=24,
+            size=22,
             weight=ft.FontWeight.BOLD,
-            color="#f9ebe8"  # Light beige for title
+            color="#f9ebe8",  # Light beige for title
+            text_align=ft.TextAlign.CENTER
         )
         
         # Subtitle
         self.subtitle = ft.Text(
             "Selecciona el rango de fechas para descargar los reportes Excel",
-            size=14,
-            color="#ec6161"  # Light red for subtitle
+            size=13,
+            color="#ec6161",  # Light red for subtitle
+            text_align=ft.TextAlign.CENTER
         )
         
         # Date inputs
@@ -214,13 +233,42 @@ class MainView:
         # Main content with responsive layout
         main_content = ft.Column(
             controls=[
-                # Header section
+                # Header section with logo
                 ft.Container(
                     content=ft.Column([
-                        self.title,
-                        self.subtitle,
-                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                    padding=ft.padding.only(bottom=20)
+                        # Logo and company name centered
+                        ft.Container(
+                            content=ft.Column([
+                                self.logo,
+                                ft.Container(height=5),
+                                self.company_name
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                            alignment=ft.alignment.center,
+                            margin=ft.margin.only(bottom=15)
+                        ),
+                        
+                        # Title and subtitle centered
+                        ft.Column([
+                            self.title,
+                            ft.Container(height=5),
+                            self.subtitle,
+                        ], 
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=0),
+                        
+                        # Divider
+                        ft.Container(
+                            content=ft.Divider(color="#ec6161"),
+                            margin=ft.margin.only(top=20)
+                        )
+                    ], 
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=0),
+                    bgcolor="#2a2a2a",  # Dark header background
+                    border_radius=10,
+                    padding=25,
+                    margin=ft.margin.only(bottom=25),
+                    border=ft.border.all(1, "#ec6161")  # Light red border
                 ),
                 
                 # Form section
