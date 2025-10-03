@@ -220,18 +220,31 @@ class MainView:
             ], spacing=8),
             
             ft.Container(
-                content=ft.Column([
-                    ft.Row([
-                        ft.Container(width=30),
-                        ft.Text("• Cartilla 492", color="#ec6161", size=12),
-                        ft.Text("• Cartilla 493", color="#ec6161", size=12)
-                    ], spacing=20),
-                    ft.Row([
-                        ft.Container(width=30),
-                        ft.Text("• Cartilla 624", color="#ec6161", size=12),
-                        ft.Text("• Cartilla 669", color="#ec6161", size=12)
-                    ], spacing=20)
-                ], spacing=5),
+                content=ft.ResponsiveRow(
+                    controls=[
+                        ft.Container(
+                            content=ft.Text("• Cartilla Proyección P. Piquillo", color="#ec6161", size=12),
+                            col={"xs": 12, "sm": 12, "md": 6, "lg": 6},
+                            padding=ft.padding.symmetric(vertical=4)
+                        ),
+                        ft.Container(
+                            content=ft.Text("• Cartilla Proyección P. California", color="#ec6161", size=12),
+                            col={"xs": 12, "sm": 12, "md": 6, "lg": 6},
+                            padding=ft.padding.symmetric(vertical=4)
+                        ),
+                        ft.Container(
+                            content=ft.Text("• Proyecciones: Conteos Variedades Piquillo", color="#ec6161", size=12),
+                            col={"xs": 12, "sm": 12, "md": 6, "lg": 6},
+                            padding=ft.padding.symmetric(vertical=4)
+                        ),
+                        ft.Container(
+                            content=ft.Text("• Proyecciones: Conteso Variedades California", color="#ec6161", size=12),
+                            col={"xs": 12, "sm": 12, "md": 6, "lg": 6},
+                            padding=ft.padding.symmetric(vertical=4)
+                        )
+                    ],
+                    spacing=0
+                ),
                 margin=ft.margin.only(bottom=15)
             ),
             
@@ -278,17 +291,12 @@ class MainView:
                 content=ft.Column([
                     ft.Row([
                         ft.Icon(ft.Icons.SCHEDULE, color="#ec6161", size=16),
-                        ft.Text("Proceso asíncrono (no bloquea la interfaz)", 
+                        ft.Text("Proceso asíncrono", 
                                color="#ec6161", size=12, expand=True)
                     ], spacing=8),
                     ft.Row([
                         ft.Icon(ft.Icons.CLOUD, color="#ec6161", size=16),
-                        ft.Text("Descarga desde API de Fitosanidad", 
-                               color="#ec6161", size=12, expand=True)
-                    ], spacing=8),
-                    ft.Row([
-                        ft.Icon(ft.Icons.CHECK_CIRCLE, color="#ec6161", size=16),
-                        ft.Text("Validación automática con Polars", 
+                        ft.Text("Descarga desde la API de agrobrain", 
                                color="#ec6161", size=12, expand=True)
                     ], spacing=8)
                 ], spacing=8)
