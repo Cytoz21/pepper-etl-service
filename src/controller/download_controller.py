@@ -18,6 +18,7 @@ class DownloadController:
         self, 
         start_date: date, 
         end_date: date,
+        download_path: str = "downloads",
         progress_callback: Optional[Callable[[float, str], None]] = None,
         completion_callback: Optional[Callable[[List[str]], None]] = None,
         error_callback: Optional[Callable[[str], None]] = None
@@ -28,6 +29,7 @@ class DownloadController:
         Args:
             start_date: Start date for the reports
             end_date: End date for the reports
+            download_path: Path where to save the downloaded files
             progress_callback: Callback for progress updates (progress: float, message: str)
             completion_callback: Callback when download completes (file_paths: List[str])
             error_callback: Callback for error handling (error_message: str)
@@ -63,7 +65,7 @@ class DownloadController:
             if progress_callback:
                 progress_callback(0.9, "Guardando archivos...")
             
-            saved_files = self.download_service.save_files(responses)
+            saved_files = self.download_service.save_files(responses, download_path)
             
             if progress_callback:
                 progress_callback(1.0, f"Descarga completada: {len(saved_files)} archivos")

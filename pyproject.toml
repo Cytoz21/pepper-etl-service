@@ -5,7 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiohttp>=3.12.15",
+    "fastexcel>=0.16.0",
+    "flet[all]==0.28.3",
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",
+    "polars>=1.34.0",
+    "python-dotenv>=1.1.1",
     "requests>=2.32.5",
 ]

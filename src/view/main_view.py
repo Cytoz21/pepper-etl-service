@@ -54,7 +54,12 @@ class MainView:
             on_change=self._on_date_change
         )
         
-        self.page.overlay.extend([self.start_date_picker, self.end_date_picker])
+        # File picker for selecting download folder
+        self.folder_picker = ft.FilePicker(
+            on_result=self._on_folder_selected
+        )
+        
+        self.page.overlay.extend([self.start_date_picker, self.end_date_picker, self.folder_picker])
         
         # Date input fields
         self.start_date_field = ft.TextField(
@@ -71,6 +76,26 @@ class MainView:
             read_only=True,
             suffix_icon=ft.Icons.CALENDAR_MONTH,
             on_click=self._open_end_date_picker
+        )
+        
+        # Folder selection
+        self.selected_folder = "downloads"  # Default folder
+        self.folder_field = ft.TextField(
+            label="Carpeta de Descarga",
+            value=self.selected_folder,
+            read_only=True,
+            suffix_icon=ft.Icons.FOLDER,
+            expand=True
+        )
+        
+        self.folder_button = ft.ElevatedButton(
+            text="Seleccionar",
+            icon=ft.Icons.FOLDER_OPEN,
+            on_click=self._select_folder,
+            style=ft.ButtonStyle(
+                color=ft.Colors.WHITE,
+                bgcolor=ft.Colors.ORANGE_600
+            )
         )
         
         # Download button
@@ -134,13 +159,25 @@ class MainView:
             spacing=20
         )
         
+        # Folder selection row
+        folder_row = ft.Row(
+            controls=[
+                self.folder_field,
+                ft.Container(
+                    content=self.folder_button,
+                    margin=ft.margin.only(left=10)
+                )
+            ],
+            spacing=10
+        )
+        
         # Info card
         info_card = ft.Card(
             content=ft.Container(
                 content=ft.Column([
                     ft.Text("Información:", weight=ft.FontWeight.BOLD),
                     ft.Text("• Se descargarán reportes de 4 cartillas (492, 493, 624, 669)"),
-                    ft.Text("• Los archivos se guardarán en la carpeta 'downloads'"),
+                    ft.Text("• Selecciona la carpeta donde guardar los archivos"),
                     ft.Text("• La descarga es asíncrona y puede tomar varios minutos")
                 ]),
                 padding=15
@@ -155,6 +192,8 @@ class MainView:
                 self.subtitle,
                 ft.Divider(height=20),
                 date_row,
+                ft.Container(height=15),
+                folder_row,
                 ft.Container(height=20),
                 self.download_button,
                 ft.Container(height=10),
@@ -199,6 +238,20 @@ class MainView:
         self.end_date_picker.open = True
         self.page.update()
     
+    def _select_folder(self, e):
+        """Open folder picker"""
+        self.folder_picker.get_directory_path()
+    
+    def _on_folder_selected(self, e: ft.FilePickerResultEvent):
+        """Handle folder selection"""
+        if e.path:
+            self.selected_folder = e.path
+            self.folder_field.value = e.path
+            self.page.update()
+        else:
+            # User cancelled selection, keep current folder
+            pass
+    
     def _on_download_click(self, e):
         """Handle download button click"""
         if self.controller.is_downloading:
@@ -240,6 +293,7 @@ class MainView:
         await self.controller.download_reports(
             start_date=start_date,
             end_date=end_date,
+            download_path=self.selected_folder,
             progress_callback=self._on_progress_update,
             completion_callback=self._on_download_complete,
             error_callback=self._on_download_error
