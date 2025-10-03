@@ -15,11 +15,15 @@ class MainView:
     def _setup_page(self):
         """Configure page properties"""
         self.page.title = "Descargador de Reportes Excel"
-        self.page.theme_mode = ft.ThemeMode.LIGHT
-        self.page.window_width = 600
-        self.page.window_height = 500
-        self.page.window_resizable = False
+        self.page.theme_mode = ft.ThemeMode.DARK
+        self.page.bgcolor = "#1a1a1a"  # Dark background
+        self.page.window_width = 800
+        self.page.window_height = 700
+        self.page.window_resizable = True
+        self.page.window_min_width = 600
+        self.page.window_min_height = 500
         self.page.padding = 20
+        self.page.scroll = ft.ScrollMode.AUTO
     
     def _create_components(self):
         """Create UI components"""
@@ -28,14 +32,14 @@ class MainView:
             "Descargador de Reportes de Fitosanidad",
             size=24,
             weight=ft.FontWeight.BOLD,
-            color=ft.Colors.BLUE_800
+            color="#f9ebe8"  # Light beige for title
         )
         
         # Subtitle
         self.subtitle = ft.Text(
             "Selecciona el rango de fechas para descargar los reportes Excel",
             size=14,
-            color=ft.Colors.GREY_700
+            color="#ec6161"  # Light red for subtitle
         )
         
         # Date inputs
@@ -93,8 +97,8 @@ class MainView:
             icon=ft.Icons.FOLDER_OPEN,
             on_click=self._select_folder,
             style=ft.ButtonStyle(
-                color=ft.Colors.WHITE,
-                bgcolor=ft.Colors.ORANGE_600
+                color="#f9ebe8",  # Light beige text
+                bgcolor="#ec6161"  # Light red background
             )
         )
         
@@ -103,8 +107,8 @@ class MainView:
             text="Descargar Reportes",
             icon=ft.Icons.DOWNLOAD,
             style=ft.ButtonStyle(
-                color=ft.Colors.WHITE,
-                bgcolor=ft.Colors.BLUE_600,
+                color="#f9ebe8",  # Light beige text
+                bgcolor="#c41a1d",  # Dark red background
                 padding=ft.padding.symmetric(horizontal=30, vertical=15)
             ),
             on_click=self._on_download_click
@@ -113,59 +117,68 @@ class MainView:
         # Progress bar
         self.progress_bar = ft.ProgressBar(
             width=400,
-            visible=False
+            visible=False,
+            color="#ec6161",  # Light red progress
+            bgcolor="#2a2a2a"  # Dark background
         )
         
         # Status text
         self.status_text = ft.Text(
             "",
             size=12,
-            color=ft.Colors.GREY_600,
+            color="#f9ebe8",  # Light beige text
             text_align=ft.TextAlign.CENTER
         )
         
-        # Results container
+        # Results container with scroll
         self.results_container = ft.Column(
             visible=False,
-            spacing=10
+            spacing=10,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True
         )
         
         # Error container
         self.error_container = ft.Container(
-            content=ft.Text("", color=ft.Colors.RED_600),
+            content=ft.Text("", color="#fb0404"),  # Bright red error text
             visible=False,
-            bgcolor=ft.Colors.RED_50,
-            border=ft.border.all(1, ft.Colors.RED_200),
+            bgcolor="#2a1a1a",  # Dark background with red tint
+            border=ft.border.all(1, "#c41a1d"),  # Dark red border
             border_radius=8,
             padding=10
         )
     
     def _build_layout(self):
         """Build the main layout"""
-        # Date selection row
-        date_row = ft.Row(
+        # Date selection - responsive layout
+        date_row = ft.ResponsiveRow(
             controls=[
                 ft.Container(
                     content=self.start_date_field,
-                    expand=1,
-                    margin=ft.margin.only(right=10)
+                    col={"sm": 12, "md": 6},
+                    padding=ft.padding.only(right=10)
                 ),
                 ft.Container(
                     content=self.end_date_field,
-                    expand=1,
-                    margin=ft.margin.only(left=10)
+                    col={"sm": 12, "md": 6},
+                    padding=ft.padding.only(left=10)
                 )
             ],
-            spacing=20
+            spacing=10
         )
         
-        # Folder selection row
-        folder_row = ft.Row(
+        # Folder selection - responsive layout
+        folder_row = ft.ResponsiveRow(
             controls=[
-                self.folder_field,
+                ft.Container(
+                    content=self.folder_field,
+                    col={"sm": 12, "md": 8},
+                    padding=ft.padding.only(right=10)
+                ),
                 ft.Container(
                     content=self.folder_button,
-                    margin=ft.margin.only(left=10)
+                    col={"sm": 12, "md": 4},
+                    padding=ft.padding.only(left=10)
                 )
             ],
             spacing=10
@@ -175,47 +188,88 @@ class MainView:
         info_card = ft.Card(
             content=ft.Container(
                 content=ft.Column([
-                    ft.Text("Información:", weight=ft.FontWeight.BOLD),
-                    ft.Text("• Se descargarán reportes de 4 cartillas (492, 493, 624, 669)"),
-                    ft.Text("• Selecciona la carpeta donde guardar los archivos"),
-                    ft.Text("• La descarga es asíncrona y puede tomar varios minutos")
+                    ft.Text("Información:", weight=ft.FontWeight.BOLD, color="#f9ebe8"),
+                    ft.Text("• Se descargarán reportes de 4 cartillas (492, 493, 624, 669)", color="#ec6161"),
+                    ft.Text("• Selecciona la carpeta donde guardar los archivos", color="#ec6161"),
+                    ft.Text("• La descarga es asíncrona y puede tomar varios minutos", color="#ec6161")
                 ]),
-                padding=15
+                padding=15,
+                bgcolor="#2a2a2a"  # Dark card background
             ),
-            elevation=2
+            elevation=2,
+            color="#2a2a2a"  # Dark card color
         )
         
-        # Main content
+        # Results section with scroll
+        results_section = ft.Container(
+            content=self.results_container,
+            height=300,  # Fixed height for scroll
+            visible=False,
+            border=ft.border.all(1, "#ec6161"),  # Light red border
+            border_radius=8,
+            padding=10,
+            bgcolor="#2a2a2a"  # Dark background
+        )
+        
+        # Main content with responsive layout
         main_content = ft.Column(
             controls=[
-                self.title,
-                self.subtitle,
-                ft.Divider(height=20),
-                date_row,
-                ft.Container(height=15),
-                folder_row,
-                ft.Container(height=20),
-                self.download_button,
-                ft.Container(height=10),
-                self.progress_bar,
-                self.status_text,
-                self.error_container,
-                self.results_container,
-                ft.Container(height=20),
-                info_card
+                # Header section
+                ft.Container(
+                    content=ft.Column([
+                        self.title,
+                        self.subtitle,
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    padding=ft.padding.only(bottom=20)
+                ),
+                
+                # Form section
+                ft.Container(
+                    content=ft.Column([
+                        date_row,
+                        ft.Container(height=15),
+                        folder_row,
+                    ]),
+                    padding=ft.padding.symmetric(horizontal=20)
+                ),
+                
+                # Action section
+                ft.Container(
+                    content=ft.Column([
+                        self.download_button,
+                        ft.Container(height=10),
+                        self.progress_bar,
+                        self.status_text,
+                        self.error_container,
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    padding=ft.padding.symmetric(vertical=20)
+                ),
+                
+                # Results section
+                results_section,
+                
+                # Info section
+                ft.Container(
+                    content=info_card,
+                    padding=ft.padding.only(top=20)
+                )
             ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=10
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+            spacing=0
         )
         
-        # Add to page
+        # Add to page with responsive container
         self.page.add(
             ft.Container(
                 content=main_content,
-                alignment=ft.alignment.center,
-                expand=True
+                expand=True,
+                padding=ft.padding.symmetric(horizontal=10, vertical=10)
             )
         )
+        
+        # Store reference to results section for show/hide
+        self.results_section = results_section
     
     def _on_date_change(self, e):
         """Handle date picker changes"""
@@ -349,25 +403,40 @@ class MainView:
         # Success message
         success_text = ft.Text(
             f"✅ Descarga completada exitosamente: {len(file_paths)} archivos",
-            color=ft.Colors.GREEN_600,
-            weight=ft.FontWeight.BOLD
+            color="#ec6161",  # Light red for success
+            weight=ft.FontWeight.BOLD,
+            size=16
         )
         self.results_container.controls.append(success_text)
         
+        # Add divider
+        self.results_container.controls.append(ft.Divider(height=20, color="#ec6161"))
+        
         # File list with detailed information
         if file_paths:
-            files_title = ft.Text("Archivos descargados:", weight=ft.FontWeight.BOLD)
+            files_title = ft.Text(
+                "Archivos descargados:", 
+                weight=ft.FontWeight.BOLD,
+                size=14,
+                color="#f9ebe8"  # Light beige for section title
+            )
             self.results_container.controls.append(files_title)
             
-            for file_path in file_paths:
+            for i, file_path in enumerate(file_paths):
                 # Get file summary using Polars
                 file_summary = self.controller.download_service.get_file_summary(file_path)
                 
                 # Create detailed file information
                 file_info_content = [
                     ft.Row([
-                        ft.Icon(ft.Icons.DESCRIPTION, color=ft.Colors.GREEN_600),
-                        ft.Text(file_summary.get('filename', 'Unknown'), weight=ft.FontWeight.BOLD, expand=True)
+                        ft.Icon(ft.Icons.DESCRIPTION, color="#ec6161", size=20),  # Light red icon
+                        ft.Text(
+                            f"{i+1}. {file_summary.get('filename', 'Unknown')}", 
+                            weight=ft.FontWeight.BOLD, 
+                            expand=True,
+                            size=13,
+                            color="#f9ebe8"  # Light beige filename
+                        )
                     ])
                 ]
                 
@@ -375,7 +444,7 @@ class MainView:
                 if 'error' not in file_summary:
                     details_text = f"📊 {file_summary.get('rows', 0)} filas, {file_summary.get('columns', 0)} columnas | 💾 {file_summary.get('file_size_mb', 0)} MB"
                     file_info_content.append(
-                        ft.Text(details_text, size=12, color=ft.Colors.GREY_600)
+                        ft.Text(details_text, size=11, color="#ec6161")  # Light red details
                     )
                     
                     # Show first few column names if available
@@ -384,36 +453,40 @@ class MainView:
                         if len(file_summary['column_names']) > 3:
                             columns_preview += f" ... (+{len(file_summary['column_names']) - 3} más)"
                         file_info_content.append(
-                            ft.Text(f"📋 Columnas: {columns_preview}", size=11, color=ft.Colors.BLUE_600)
+                            ft.Text(f"📋 Columnas: {columns_preview}", size=10, color="#c41a1d")  # Dark red columns
                         )
                 else:
                     # Show error information
                     file_info_content.append(
-                        ft.Text(f"⚠️ Error: {file_summary['error']}", size=12, color=ft.Colors.RED_600)
+                        ft.Text(f"⚠️ Error: {file_summary['error']}", size=11, color="#fb0404")  # Bright red error
                     )
                     file_info_content.append(
-                        ft.Text(f"💾 {file_summary.get('file_size_mb', 0)} MB", size=12, color=ft.Colors.GREY_600)
+                        ft.Text(f"💾 {file_summary.get('file_size_mb', 0)} MB", size=11, color="#ec6161")  # Light red size
                     )
                 
-                # Add file path
+                # Add file path (truncated for better display)
+                path_display = file_path if len(file_path) <= 60 else f"...{file_path[-57:]}"
                 file_info_content.append(
-                    ft.Text(f"📁 {file_path}", size=10, color=ft.Colors.GREY_500)
+                    ft.Text(f"📁 {path_display}", size=9, color="#f9ebe8")  # Light beige path
                 )
                 
                 file_item = ft.Container(
-                    content=ft.Column(file_info_content, spacing=5),
-                    bgcolor=ft.Colors.GREEN_50,
-                    border=ft.border.all(1, ft.Colors.GREEN_200),
+                    content=ft.Column(file_info_content, spacing=3),
+                    bgcolor="#3a2a2a",  # Dark background with slight red tint
+                    border=ft.border.all(1, "#ec6161"),  # Light red border
                     border_radius=8,
-                    padding=15,
-                    margin=ft.margin.symmetric(vertical=5)
+                    padding=12,
+                    margin=ft.margin.symmetric(vertical=3)
                 )
                 self.results_container.controls.append(file_item)
         
+        # Show the results section
+        self.results_section.visible = True
         self.results_container.visible = True
         self.page.update()
     
     def _hide_results(self):
         """Hide results"""
+        self.results_section.visible = False
         self.results_container.visible = False
         self.page.update()
