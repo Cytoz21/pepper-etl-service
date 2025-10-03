@@ -1,5 +1,5 @@
 import flet as ft
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List
 from ..controller import DownloadController
 
@@ -61,19 +61,21 @@ class MainView:
             text_align=ft.TextAlign.CENTER
         )
         
-        # Date inputs
+        # Date inputs - default to yesterday (current date - 1 day)
         today = date.today()
+        yesterday = today - timedelta(days=1)
+        
         self.start_date_picker = ft.DatePicker(
             first_date=datetime(2020, 1, 1),
             last_date=datetime.now(),
-            value=today,
+            value=yesterday,
             on_change=self._on_date_change
         )
         
         self.end_date_picker = ft.DatePicker(
             first_date=datetime(2020, 1, 1),
             last_date=datetime.now(),
-            value=today,
+            value=yesterday,
             on_change=self._on_date_change
         )
         
@@ -87,7 +89,7 @@ class MainView:
         # Date input fields
         self.start_date_field = ft.TextField(
             label="Fecha de Inicio",
-            value=today.strftime("%Y-%m-%d"),
+            value=yesterday.strftime("%Y-%m-%d"),
             read_only=True,
             suffix_icon=ft.Icons.CALENDAR_MONTH,
             on_click=self._open_start_date_picker
@@ -95,7 +97,7 @@ class MainView:
         
         self.end_date_field = ft.TextField(
             label="Fecha de Fin",
-            value=today.strftime("%Y-%m-%d"),
+            value=yesterday.strftime("%Y-%m-%d"),
             read_only=True,
             suffix_icon=ft.Icons.CALENDAR_MONTH,
             on_click=self._open_end_date_picker
