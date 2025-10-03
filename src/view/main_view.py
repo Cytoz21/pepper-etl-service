@@ -14,7 +14,7 @@ class MainView:
     
     def _setup_page(self):
         """Configure page properties"""
-        self.page.title = "Descargador de Reportes Excel"
+        self.page.title = "Descargador de Reportes"
         self.page.theme_mode = ft.ThemeMode.DARK
         self.page.bgcolor = "#1a1a1a"  # Dark background
         self.page.window_width = 800
@@ -46,7 +46,7 @@ class MainView:
         
         # Title
         self.title = ft.Text(
-            "Descargador de Reportes de Fitosanidad",
+            "Descargador de Reportes",
             size=22,
             weight=ft.FontWeight.BOLD,
             color="#f9ebe8",  # Light beige for title
@@ -55,7 +55,7 @@ class MainView:
         
         # Subtitle
         self.subtitle = ft.Text(
-            "Selecciona el rango de fechas para descargar los reportes Excel",
+            "Selecciona el rango de fechas para descargar los reportes",
             size=13,
             color="#ec6161",  # Light red for subtitle
             text_align=ft.TextAlign.CENTER
@@ -159,6 +159,9 @@ class MainView:
             expand=True
         )
         
+        # Info card expanded state
+        self.info_expanded = True
+        
         # Error container
         self.error_container = ft.Container(
             content=ft.Text("", color="#fb0404"),  # Bright red error text
@@ -176,16 +179,16 @@ class MainView:
             controls=[
                 ft.Container(
                     content=self.start_date_field,
-                    col={"sm": 12, "md": 6},
-                    padding=ft.padding.only(right=10)
+                    col={"xs": 12, "sm": 12, "md": 6, "lg": 6},
+                    padding=ft.padding.symmetric(horizontal=5, vertical=5)
                 ),
                 ft.Container(
                     content=self.end_date_field,
-                    col={"sm": 12, "md": 6},
-                    padding=ft.padding.only(left=10)
+                    col={"xs": 12, "sm": 12, "md": 6, "lg": 6},
+                    padding=ft.padding.symmetric(horizontal=5, vertical=5)
                 )
             ],
-            spacing=10
+            spacing=0
         )
         
         # Folder selection - responsive layout
@@ -193,32 +196,137 @@ class MainView:
             controls=[
                 ft.Container(
                     content=self.folder_field,
-                    col={"sm": 12, "md": 8},
-                    padding=ft.padding.only(right=10)
+                    col={"xs": 12, "sm": 12, "md": 8, "lg": 8},
+                    padding=ft.padding.symmetric(horizontal=5, vertical=5)
                 ),
                 ft.Container(
                     content=self.folder_button,
-                    col={"sm": 12, "md": 4},
-                    padding=ft.padding.only(left=10)
+                    col={"xs": 12, "sm": 12, "md": 4, "lg": 4},
+                    padding=ft.padding.symmetric(horizontal=5, vertical=5)
                 )
             ],
-            spacing=10
+            spacing=0
         )
         
-        # Info card
+        # Enhanced Info card with collapsible functionality
+        self.info_content = ft.Column([
+            # Cartillas section
+            ft.Row([
+                ft.Icon(ft.Icons.DESCRIPTION, color="#c41a1d", size=20),
+                ft.Text("Cartillas a descargar:", 
+                       weight=ft.FontWeight.BOLD, 
+                       color="#f9ebe8", 
+                       size=14)
+            ], spacing=8),
+            
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Container(width=30),
+                        ft.Text("• Cartilla 492", color="#ec6161", size=12),
+                        ft.Text("• Cartilla 493", color="#ec6161", size=12)
+                    ], spacing=20),
+                    ft.Row([
+                        ft.Container(width=30),
+                        ft.Text("• Cartilla 624", color="#ec6161", size=12),
+                        ft.Text("• Cartilla 669", color="#ec6161", size=12)
+                    ], spacing=20)
+                ], spacing=5),
+                margin=ft.margin.only(bottom=15)
+            ),
+            
+            # Instructions section
+            ft.Row([
+                ft.Icon(ft.Icons.SETTINGS, color="#c41a1d", size=20),
+                ft.Text("Instrucciones:", 
+                       weight=ft.FontWeight.BOLD, 
+                       color="#f9ebe8", 
+                       size=14)
+            ], spacing=8),
+            
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Icon(ft.Icons.DATE_RANGE, color="#ec6161", size=16),
+                        ft.Text("Selecciona el rango de fechas deseado", 
+                               color="#ec6161", size=12, expand=True)
+                    ], spacing=8),
+                    ft.Row([
+                        ft.Icon(ft.Icons.FOLDER, color="#ec6161", size=16),
+                        ft.Text("Elige la carpeta donde guardar los archivos", 
+                               color="#ec6161", size=12, expand=True)
+                    ], spacing=8),
+                    ft.Row([
+                        ft.Icon(ft.Icons.DOWNLOAD, color="#ec6161", size=16),
+                        ft.Text("Haz clic en 'Descargar Reportes' para iniciar", 
+                               color="#ec6161", size=12, expand=True)
+                    ], spacing=8)
+                ], spacing=8),
+                margin=ft.margin.only(bottom=15)
+            ),
+            
+            # Technical info section
+            ft.Row([
+                ft.Icon(ft.Icons.BUILD, color="#c41a1d", size=20),
+                ft.Text("Información Técnica:", 
+                       weight=ft.FontWeight.BOLD, 
+                       color="#f9ebe8", 
+                       size=14)
+            ], spacing=8),
+            
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Icon(ft.Icons.SCHEDULE, color="#ec6161", size=16),
+                        ft.Text("Proceso asíncrono (no bloquea la interfaz)", 
+                               color="#ec6161", size=12, expand=True)
+                    ], spacing=8),
+                    ft.Row([
+                        ft.Icon(ft.Icons.CLOUD, color="#ec6161", size=16),
+                        ft.Text("Descarga desde API de Fitosanidad", 
+                               color="#ec6161", size=12, expand=True)
+                    ], spacing=8),
+                    ft.Row([
+                        ft.Icon(ft.Icons.CHECK_CIRCLE, color="#ec6161", size=16),
+                        ft.Text("Validación automática con Polars", 
+                               color="#ec6161", size=12, expand=True)
+                    ], spacing=8)
+                ], spacing=8)
+            )
+        ], spacing=10, visible=self.info_expanded)
+        
         info_card = ft.Card(
             content=ft.Container(
                 content=ft.Column([
-                    ft.Text("Información:", weight=ft.FontWeight.BOLD, color="#f9ebe8"),
-                    ft.Text("• Se descargarán reportes de 4 cartillas (492, 493, 624, 669)", color="#ec6161"),
-                    ft.Text("• Selecciona la carpeta donde guardar los archivos", color="#ec6161"),
-                    ft.Text("• La descarga es asíncrona y puede tomar varios minutos", color="#ec6161")
-                ]),
-                padding=15,
-                bgcolor="#2a2a2a"  # Dark card background
+                    # Header with icon and toggle button
+                    ft.Row([
+                        ft.Icon(ft.Icons.INFO_OUTLINE, color="#ec6161", size=24),
+                        ft.Text("Información del Sistema", 
+                               weight=ft.FontWeight.BOLD, 
+                               color="#f9ebe8", 
+                               size=16,
+                               expand=True),
+                        ft.IconButton(
+                            icon=ft.Icons.EXPAND_LESS if self.info_expanded else ft.Icons.EXPAND_MORE,
+                            icon_color="#ec6161",
+                            on_click=self._toggle_info_card,
+                            tooltip="Mostrar/Ocultar información"
+                        )
+                    ], spacing=10),
+                    
+                    ft.Divider(height=20, color="#ec6161"),
+                    
+                    # Collapsible content
+                    self.info_content
+                    
+                ], spacing=10),
+                padding=20,
+                bgcolor="#2a2a2a",  # Dark card background
+                border_radius=12
             ),
-            elevation=2,
-            color="#2a2a2a"  # Dark card color
+            elevation=4,
+            color="#2a2a2a",  # Dark card color
+            margin=ft.margin.symmetric(horizontal=10)
         )
         
         # Results section with scroll
@@ -355,6 +463,17 @@ class MainView:
         else:
             # User cancelled selection, keep current folder
             pass
+    
+    def _toggle_info_card(self, e):
+        """Toggle info card visibility"""
+        self.info_expanded = not self.info_expanded
+        self.info_content.visible = self.info_expanded
+        
+        # Update the icon
+        toggle_button = e.control
+        toggle_button.icon = ft.Icons.EXPAND_LESS if self.info_expanded else ft.Icons.EXPAND_MORE
+        
+        self.page.update()
     
     def _on_download_click(self, e):
         """Handle download button click"""
