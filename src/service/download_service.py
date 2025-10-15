@@ -5,8 +5,13 @@ import base64
 import json
 from pathlib import Path
 from typing import List, Optional
-import polars as pl
 from ..model import APIRequest, APIResponse, DateRange
+from .utils import (
+    has_valid_data,
+    validate_excel_file,
+    determine_target_folder_and_filename,
+    get_file_summary as _get_file_summary
+)
 
 
 class DownloadService:
@@ -105,119 +110,88 @@ class DownloadService:
                 # Update progress if callback provided
                 if progress_callback:
                     progress = (i + 1) / len(tasks)
-                    await progress_callback(progress, f"Descargado {i + 1}/{len(tasks)} reportes")
+                    await progress_callback(progress, f"Procesando {i + 1}/{len(tasks)} reportes")
         
         return responses
     
     def save_files(self, responses: List[APIResponse], download_path: str = "downloads") -> List[str]:
-        """Save downloaded files to disk and validate them"""
+        """Save downloaded files to disk with dynamic naming and organized folders based on content"""
+        # Base path for organized storage
+        base_path = Path("G:/.shortcut-targets-by-id/1-V4d2pzu_wx0WYYjxK1L6BhB2q-kvuUc/Pimientos/10 Reportes/20. Plantillas/1. RStudio/1. Conteo/Lambayeque")
+        
+        # Create base directory structure
+        cartilla_path = base_path / "1. Cartilla"
+        ensayos_path = base_path / "2. Ensayos"
+        
+        # Create directories if they don't exist
+        cartilla_path.mkdir(parents=True, exist_ok=True)
+        ensayos_path.mkdir(parents=True, exist_ok=True)
+        
+        # Fallback to local downloads folder
         Path(download_path).mkdir(exist_ok=True)
+        
         saved_files = []
         
         for response in responses:
             if response.filename:
-                file_path = Path(download_path) / response.filename
+                # Save the file temporarily with original name in local downloads
+                temp_file_path = Path(download_path) / response.filename
                 
-                # Save the file
-                with open(file_path, 'wb') as f:
+                # Save the file temporarily
+                with open(temp_file_path, 'wb') as f:
                     f.write(response.content)
                 
+                # Check if file has valid data before processing
+                if not has_valid_data(temp_file_path):
+                    print(f"🚫 Archivo omitido (sin datos): {response.filename}")
+                    temp_file_path.unlink()  # Delete empty file
+                    continue
+                
+                # Determine target folder and generate dynamic filename
+                target_folder, new_filename = determine_target_folder_and_filename(temp_file_path, cartilla_path, ensayos_path)
+                
+                # Use new filename if generated, otherwise keep original
+                final_filename = new_filename if new_filename else response.filename
+                
+                # Final file path in the organized structure
+                final_file_path = target_folder / final_filename
+                
+                try:
+                    # Copy file to organized location
+                    with open(final_file_path, 'wb') as f:
+                        f.write(response.content)
+                    
+                    # Remove temporary file
+                    temp_file_path.unlink()
+                    
+                    file_path = final_file_path
+                    
+                    if new_filename and new_filename != response.filename:
+                        print(f"📝 Archivo renombrado y movido: {response.filename} → {target_folder.name}/{final_filename}")
+                    else:
+                        print(f"📁 Archivo movido a: {target_folder.name}/{final_filename}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Error moviendo archivo a carpeta organizada: {str(e)}")
+                    # Keep file in local downloads as fallback
+                    if new_filename and new_filename != response.filename:
+                        fallback_path = Path(download_path) / new_filename
+                        temp_file_path.rename(fallback_path)
+                        file_path = fallback_path
+                        print(f"📝 Archivo renombrado (local): {response.filename} → {new_filename}")
+                    else:
+                        file_path = temp_file_path
+                
                 # Validate the Excel file using Polars
-                if self._validate_excel_file(file_path):
+                if validate_excel_file(file_path):
                     saved_files.append(str(file_path))
-                    print(f"✅ Archivo válido guardado: {response.filename}")
+                    print(f"✅ Archivo válido guardado: {file_path.name}")
                 else:
-                    print(f"⚠️ Archivo guardado pero con posibles problemas: {response.filename}")
+                    print(f"⚠️ Archivo guardado pero con posibles problemas: {file_path.name}")
                     saved_files.append(str(file_path))  # Still add it to the list
         
         return saved_files
     
-    def _validate_excel_file(self, file_path: Path) -> bool:
-        """Validate Excel file using Polars with fallback to openpyxl"""
-        try:
-            # Try to read the Excel file with Polars using different engines
-            df = None
-            
-            # First try with fastexcel engine
-            try:
-                df = pl.read_excel(file_path, engine="fastexcel")
-            except Exception:
-                # Fallback to openpyxl engine
-                try:
-                    df = pl.read_excel(file_path, engine="openpyxl")
-                except Exception:
-                    # Last fallback: use pandas with openpyxl and convert to polars
-                    import pandas as pd
-                    pandas_df = pd.read_excel(file_path, engine="openpyxl")
-                    df = pl.from_pandas(pandas_df)
-            
-            if df is None:
-                print(f"❌ No se pudo leer el archivo {file_path.name}")
-                return False
-            
-            # Basic validations
-            if df.is_empty():
-                print(f"⚠️ El archivo {file_path.name} está vacío")
-                return False
-            
-            # Check if it has reasonable dimensions
-            rows, cols = df.shape
-            if rows == 0 or cols == 0:
-                print(f"⚠️ El archivo {file_path.name} no tiene datos válidos (filas: {rows}, columnas: {cols})")
-                return False
-            
-            print(f"📊 Archivo {file_path.name}: {rows} filas, {cols} columnas")
-            
-            # Optional: Log column names for debugging
-            if cols > 0:
-                column_names = df.columns[:5]  # First 5 columns
-                print(f"📋 Primeras columnas: {column_names}")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error validando {file_path.name}: {str(e)}")
-            return False
-    
     def get_file_summary(self, file_path: str) -> dict:
-        """Get summary information about an Excel file using Polars"""
-        try:
-            # Try to read the Excel file with different engines
-            df = None
-            
-            # First try with fastexcel engine
-            try:
-                df = pl.read_excel(file_path, engine="fastexcel")
-            except Exception:
-                # Fallback to openpyxl engine
-                try:
-                    df = pl.read_excel(file_path, engine="openpyxl")
-                except Exception:
-                    # Last fallback: use pandas with openpyxl and convert to polars
-                    import pandas as pd
-                    pandas_df = pd.read_excel(file_path, engine="openpyxl")
-                    df = pl.from_pandas(pandas_df)
-            
-            if df is None:
-                raise Exception("No se pudo leer el archivo Excel")
-            
-            summary = {
-                'filename': Path(file_path).name,
-                'rows': df.shape[0],
-                'columns': df.shape[1],
-                'column_names': df.columns,
-                'file_size_mb': round(Path(file_path).stat().st_size / (1024 * 1024), 2)
-            }
-            
-            # Add sample data (first few rows)
-            if not df.is_empty():
-                summary['sample_data'] = df.head(3).to_dicts()
-            
-            return summary
-            
-        except Exception as e:
-            return {
-                'filename': Path(file_path).name,
-                'error': str(e),
-                'file_size_mb': round(Path(file_path).stat().st_size / (1024 * 1024), 2) if Path(file_path).exists() else 0
-            }
+        """Get summary information about an Excel file using Polars with robust handling"""
+        return _get_file_summary(file_path)
