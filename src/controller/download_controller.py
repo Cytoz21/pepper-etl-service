@@ -18,10 +18,10 @@ class DownloadController:
         self, 
         start_date: date, 
         end_date: date,
-        download_path: str = "downloads",
         progress_callback: Optional[Callable[[float, str], None]] = None,
         completion_callback: Optional[Callable[[List[str]], None]] = None,
-        error_callback: Optional[Callable[[str], None]] = None
+        error_callback: Optional[Callable[[str], None]] = None,
+        download_path: str = "downloads"
     ) -> None:
         """
         Download all reports for the given date range
@@ -29,10 +29,10 @@ class DownloadController:
         Args:
             start_date: Start date for the reports
             end_date: End date for the reports
-            download_path: Path where to save the downloaded files
             progress_callback: Callback for progress updates (progress: float, message: str)
             completion_callback: Callback when download completes (file_paths: List[str])
             error_callback: Callback for error handling (error_message: str)
+            download_path: Optional fallback path for local downloads (defaults to "downloads")
         """
         if self._is_downloading:
             if error_callback:
@@ -63,12 +63,20 @@ class DownloadController:
             
             # Save files
             if progress_callback:
-                progress_callback(0.9, "Guardando archivos...")
+                progress_callback(0.9, "Validando y guardando archivos...")
             
             saved_files = self.download_service.save_files(responses, download_path)
             
+            # Calculate statistics
+            total_downloaded = len(responses)
+            files_saved = len(saved_files)
+            files_omitted = total_downloaded - files_saved
+            
             if progress_callback:
-                progress_callback(1.0, f"Descarga completada: {len(saved_files)} archivos")
+                if files_omitted > 0:
+                    progress_callback(1.0, f"✅ Guardados: {files_saved} archivos | 🚫 Omitidos: {files_omitted} (sin datos)")
+                else:
+                    progress_callback(1.0, f"✅ Proceso completado: {files_saved} archivos guardados")
             
             # Notify completion
             if completion_callback:
