@@ -16,7 +16,22 @@ from .utils import (
 
 class DownloadService:
     def __init__(self):
-        self.base_url = f"{os.getenv('API_SCHEME')}://{os.getenv('API_HOST')}:{os.getenv('API_PORT')}{os.getenv('API_BASE')}{os.getenv('EXCEL_RPT_PATH')}"
+        # Get environment variables with defaults for debugging
+        api_scheme = os.getenv('API_SCHEME', 'http')
+        api_host = os.getenv('API_HOST')
+        api_port = os.getenv('API_PORT')
+        api_base = os.getenv('API_BASE', '/WS_AB/api')
+        excel_rpt_path = os.getenv('EXCEL_RPT_PATH', '/Fitosanidad/ZABG_ExcelRptEvaluacionesXVariable')
+        
+        # Validate required environment variables
+        if not api_host or not api_port:
+            raise ValueError(
+                "Missing required environment variables. Please ensure .env file exists with:\n"
+                "API_HOST and API_PORT are required.\n"
+                "See .env.example for configuration template."
+            )
+        
+        self.base_url = f"{api_scheme}://{api_host}:{api_port}{api_base}{excel_rpt_path}"
         self.authorization = os.getenv('AUTHORIZATION')
         self.cartillas = [492, 493, 624, 669]
         self.fixed_params = {

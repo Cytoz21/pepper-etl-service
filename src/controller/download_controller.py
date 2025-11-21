@@ -6,7 +6,12 @@ from ..service import DownloadService
 
 class DownloadController:
     def __init__(self):
-        self.download_service = DownloadService()
+        try:
+            self.download_service = DownloadService()
+        except ValueError as e:
+            # Store error for later handling
+            self.download_service = None
+            self._init_error = str(e)
         self._is_downloading = False
     
     @property
@@ -41,6 +46,10 @@ class DownloadController:
         
         try:
             self._is_downloading = True
+            
+            # Check if download service was initialized correctly
+            if self.download_service is None:
+                raise ValueError(self._init_error)
             
             # Validate dates
             if start_date > end_date:

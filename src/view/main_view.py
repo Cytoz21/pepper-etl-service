@@ -5,8 +5,9 @@ from ..controller import DownloadController
 
 
 class MainView:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, logo_path: str = None):
         self.page = page
+        self.logo_path = logo_path or "src/assets/danper-logo.png"
         self.controller = DownloadController()
         self._setup_page()
         self._create_components()
@@ -29,7 +30,7 @@ class MainView:
         """Create UI components"""
         # Logo
         self.logo = ft.Image(
-            src="src/assets/danper-logo.png",
+            src=self.logo_path,
             width=80,
             height=80,
             fit=ft.ImageFit.CONTAIN
