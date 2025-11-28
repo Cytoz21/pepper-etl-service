@@ -163,7 +163,7 @@ class MainView:
         )
 
         self.browse_button = ft.IconButton(
-            icon=ft.icons.FOLDER_OPEN,
+            icon=ft.Icons.FOLDER_OPEN,
             tooltip="Examinar...",
             icon_color="white",
             bgcolor="#43474e",
@@ -173,6 +173,20 @@ class MainView:
         
         # We map path_field to directory_path_text for compatibility with existing code
         self.path_field = self.directory_path_text
+        
+        # --- Action Components ---
+        self.download_button = ft.ElevatedButton(
+            text="DESCARGAR REPORTES",
+            icon=ft.Icons.DOWNLOAD,
+            style=ft.ButtonStyle(
+                color="white",
+                bgcolor=self.COLOR_PRIMARY,
+                padding=ft.padding.symmetric(horizontal=40, vertical=20),
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation=5
+            ),
+            on_click=self._on_download_click
+        )
         
         self.progress_bar = ft.ProgressBar(
             width=400,
@@ -312,17 +326,19 @@ class MainView:
             border=ft.border.only(top=ft.BorderSide(1, self.COLOR_BORDER))
         )
         
-        self.page.add(
-            ft.Column([
-                header,
-                ft.Container(
-                    content=main_content,
-                    padding=20,
-                    expand=True
-                ),
-                footer
-            ], expand=True)
-        )
+        # Return the main layout instead of adding directly to page
+        self.layout = ft.Column([
+            header,
+            ft.Container(
+                content=main_content,
+                padding=20,
+                expand=True
+            ),
+            footer
+        ], expand=True)
+        
+        # Note: We do NOT add to page here anymore. 
+        # The controller (main.py) will add self.layout to the View.
 
     def _on_date_change(self, e):
         if e.control == self.start_date_picker and self.start_date_picker.value:
@@ -342,7 +358,7 @@ class MainView:
     def _on_directory_picked(self, e: ft.FilePickerResultEvent):
         if e.path:
             self.path_field.value = e.path
-            self.page.update()
+            self.path_field.update() # Update only the field, safer than page.update()
 
     def _on_download_click(self, e):
         # 1. Validate Fundo

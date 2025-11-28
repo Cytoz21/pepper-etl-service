@@ -2,45 +2,6 @@ import flet as ft
 from dotenv import load_dotenv
 import os
 import sys
-from src.view import MainView
-
-
-def get_asset_path(asset_name):
-    """Get the correct path to an asset file, works both in dev and compiled"""
-    if getattr(sys, 'frozen', False):
-        # Running as compiled executable
-        base_path = sys._MEIPASS
-    else:
-        # Running as script
-        base_path = os.path.dirname(os.path.abspath(__file__))
-    
-    return os.path.join(base_path, 'src', 'assets', asset_name)
-
-
-def main(page: ft.Page):
-    """Main application entry point"""
-    # Load environment variables from .env file
-    # Try multiple locations to support both dev and compiled environments
-    if getattr(sys, 'frozen', False):
-        # Running as compiled executable
-        base_path = sys._MEIPASS
-        env_path = os.path.join(base_path, '.env')
-    else:
-        # Running as script
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        env_path = os.path.join(base_path, '.env')
-    
-    # Load .env file if it exists
-    if os.path.exists(env_path):
-        load_dotenv(env_path)
-    
-    # Load .env.local if it exists (overrides .env)
-    env_local_path = os.path.join(base_path, '.env.local')
-    if os.path.exists(env_local_path):
-import flet as ft
-from dotenv import load_dotenv
-import os
-import sys
 from src.view import MainView, LoginView
 
 
@@ -85,6 +46,9 @@ def main(page: ft.Page):
     # Get asset paths
     logo_path = get_asset_path('danper-logo.png')
     
+    # Store logo path in page for LoginView access
+    page.logo_path = logo_path
+    
     def route_change(route):
         page.views.clear()
         
@@ -97,17 +61,19 @@ def main(page: ft.Page):
             page.go("/login")
         else:
             # Main App View
-            # We create a base view and let MainView populate it
-            # MainView uses page.add() which adds to the top view
             main_view_obj = ft.View(
                 "/",
                 padding=0,
                 bgcolor="#121212"
             )
-            page.views.append(main_view_obj)
             
-            # Initialize MainView (it will add controls to the view we just pushed)
-            MainView(page, logo_path=logo_path)
+            # Initialize MainView
+            main_view_instance = MainView(page, logo_path=logo_path)
+            
+            # Add layout to view
+            main_view_obj.controls.append(main_view_instance.layout)
+            
+            page.views.append(main_view_obj)
             
         page.update()
 

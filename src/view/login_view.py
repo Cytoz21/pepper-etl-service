@@ -40,6 +40,7 @@ class LoginView(ft.View):
         self.username_field = ft.TextField(
             label="Usuario",
             width=300,
+            autofocus=True,
             bgcolor="#2b2d31",
             border_color="#43474e",
             color="white",
@@ -107,7 +108,7 @@ class LoginView(ft.View):
             shadow=ft.BoxShadow(
                 spread_radius=1,
                 blur_radius=15,
-                color=ft.colors.with_opacity(0.5, "black"),
+                color="rgba(0, 0, 0, 0.5)",
             )
         )
 
