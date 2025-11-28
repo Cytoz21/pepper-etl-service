@@ -63,6 +63,30 @@ class DownloadController:
             if start_date > end_date:
                 raise ValueError("La fecha de inicio no puede ser mayor que la fecha de fin")
             
+            # Download reports
+            if progress_callback:
+                progress_callback(0.1, "Iniciando descarga...")
+            
+            responses = await self.download_service.download_all_reports(
+                start_date=start_date,
+                end_date=end_date,
+                cartillas=selected_cartillas,
+                fundo_code=selected_fundo_code
+            )
+            
+            if progress_callback:
+                progress_callback(0.7, f"Descargados {len(responses)} reportes, guardando archivos...")
+            
+            # Create cartilla map (code to name)
+            cartilla_map = {c.code: c.name for c in self.cartillas}
+            
+            # Save files
+            saved_files = self.download_service.save_files(
+                responses=responses,
+                download_path=download_path,
+                cartilla_map=cartilla_map
+            )
+            
             # Calculate statistics
             total_downloaded = len(responses)
             files_saved = len(saved_files)
