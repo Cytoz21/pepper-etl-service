@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Callable, Optional
-from ..model import DateRange
-from ..service import DownloadService
+from ..model import DateRange, Fundo, Cartilla
+from ..service import DownloadService, ConfigLoader
 
 
 class DownloadController:
@@ -11,7 +11,13 @@ class DownloadController:
         except ValueError as e:
             # Store error for later handling
             self.download_service = None
+            self.download_service = None
             self._init_error = str(e)
+            
+        # Load configuration
+        self.config_loader = ConfigLoader()
+        self.fundos, self.cartillas = self.config_loader.load_config()
+        
         self._is_downloading = False
     
     @property
@@ -23,10 +29,12 @@ class DownloadController:
         self, 
         start_date: date, 
         end_date: date,
+        selected_cartillas: List[int],
+        selected_fundo_code: str,
+        download_path: str,
         progress_callback: Optional[Callable[[float, str], None]] = None,
         completion_callback: Optional[Callable[[List[str]], None]] = None,
-        error_callback: Optional[Callable[[str], None]] = None,
-        download_path: str = "downloads"
+        error_callback: Optional[Callable[[str], None]] = None
     ) -> None:
         """
         Download all reports for the given date range
@@ -64,6 +72,8 @@ class DownloadController:
             
             responses = await self.download_service.download_all_reports(
                 date_range, 
+                cartillas=selected_cartillas,
+                fundo_code=selected_fundo_code,
                 progress_callback=self._create_async_progress_callback(progress_callback)
             )
             
@@ -74,7 +84,10 @@ class DownloadController:
             if progress_callback:
                 progress_callback(0.9, "Validando y guardando archivos...")
             
-            saved_files = self.download_service.save_files(responses, download_path)
+            # Create mapping of cartilla codes to names
+            cartilla_map = {c.code: c.name for c in self.cartillas}
+            
+            saved_files = self.download_service.save_files(responses, download_path, cartilla_map)
             
             # Calculate statistics
             total_downloaded = len(responses)

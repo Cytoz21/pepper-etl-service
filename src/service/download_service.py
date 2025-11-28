@@ -33,17 +33,19 @@ class DownloadService:
         
         self.base_url = f"{api_scheme}://{api_host}:{api_port}{api_base}{excel_rpt_path}"
         self.authorization = os.getenv('AUTHORIZATION')
-        self.cartillas = [492, 493, 624, 669]
+        self.base_url = f"{api_scheme}://{api_host}:{api_port}{api_base}{excel_rpt_path}"
+        self.authorization = os.getenv('AUTHORIZATION')
+        # Default fixed params (can be overridden)
         self.fixed_params = {
-            'prmstrFundo': '290',
             'prmintCultivo': '2',
             'prmstrRUCEmpresa': '20170040938'
         }
     
-    def _build_request(self, cartilla: int, date_range: DateRange) -> APIRequest:
+    def _build_request(self, cartilla: int, date_range: DateRange, fundo_code: str) -> APIRequest:
         """Build API request for a specific cartilla and date range"""
         params = {
             **self.fixed_params,
+            'prmstrFundo': fundo_code,
             'prmintCartilla': str(cartilla),
             'prmdatFechaInicio': date_range.start.strftime('%Y-%m-%d'),
             'prmdatFechaFin': date_range.end.strftime('%Y-%m-%d')
@@ -105,14 +107,20 @@ class DownloadService:
             print(f"Exception downloading cartilla {cartilla}: {str(e)}")
             return None
     
-    async def download_all_reports(self, date_range: DateRange, progress_callback=None) -> List[APIResponse]:
+    async def download_all_reports(
+        self, 
+        date_range: DateRange, 
+        cartillas: List[int], 
+        fundo_code: str,
+        progress_callback=None
+    ) -> List[APIResponse]:
         """Download all reports asynchronously"""
-        requests = [self._build_request(cartilla, date_range) for cartilla in self.cartillas]
+        requests = [self._build_request(cartilla, date_range, fundo_code) for cartilla in cartillas]
         responses = []
         
         async with aiohttp.ClientSession() as session:
             tasks = []
-            for i, (request, cartilla) in enumerate(zip(requests, self.cartillas)):
+            for i, (request, cartilla) in enumerate(zip(requests, cartillas)):
                 task = self.download_file(session, request, cartilla)
                 tasks.append(task)
             
@@ -129,21 +137,11 @@ class DownloadService:
         
         return responses
     
-    def save_files(self, responses: List[APIResponse], download_path: str = "downloads") -> List[str]:
-        """Save downloaded files to disk with dynamic naming and organized folders based on content"""
-        # Base path for organized storage
-        base_path = Path("G:/.shortcut-targets-by-id/1-V4d2pzu_wx0WYYjxK1L6BhB2q-kvuUc/Pimientos/10 Reportes/20. Plantillas/1. RStudio/1. Conteo/Lambayeque")
-        
-        # Create base directory structure
-        cartilla_path = base_path / "1. Cartilla"
-        ensayos_path = base_path / "2. Ensayos"
-        
-        # Create directories if they don't exist
-        cartilla_path.mkdir(parents=True, exist_ok=True)
-        ensayos_path.mkdir(parents=True, exist_ok=True)
-        
-        # Fallback to local downloads folder
-        Path(download_path).mkdir(exist_ok=True)
+    def save_files(self, responses: List[APIResponse], download_path: str, cartilla_map: dict = None) -> List[str]:
+        """Save downloaded files directly to download path with cartilla names"""
+        # Use provided download path as base
+        base_path = Path(download_path)
+        base_path.mkdir(parents=True, exist_ok=True)
         
         saved_files = []
         
@@ -162,40 +160,31 @@ class DownloadService:
                     temp_file_path.unlink()  # Delete empty file
                     continue
                 
-                # Determine target folder and generate dynamic filename
-                target_folder, new_filename = determine_target_folder_and_filename(temp_file_path, cartilla_path, ensayos_path)
+                # Extract cartilla code from filename (e.g., reporte_cartilla_623_2025-11-17_2025-11-19.xlsx)
+                import re
+                match = re.search(r'cartilla_(\d+)_', response.filename)
+                cartilla_code = int(match.group(1)) if match else None
                 
-                # Use new filename if generated, otherwise keep original
-                final_filename = new_filename if new_filename else response.filename
+                # Generate filename based on cartilla name
+                if cartilla_code and cartilla_map and cartilla_code in cartilla_map:
+                    cartilla_name = cartilla_map[cartilla_code]
+                    # Sanitize filename (remove invalid characters)
+                    safe_name = re.sub(r'[<>:"/\\|?*]', '_', cartilla_name)
+                    final_filename = f"{safe_name}.xlsx"
+                else:
+                    final_filename = response.filename
                 
-                # Final file path in the organized structure
-                final_file_path = target_folder / final_filename
+                # Final file path
+                final_file_path = base_path / final_filename
                 
-                try:
-                    # Copy file to organized location
-                    with open(final_file_path, 'wb') as f:
-                        f.write(response.content)
-                    
-                    # Remove temporary file
-                    temp_file_path.unlink()
-                    
-                    file_path = final_file_path
-                    
-                    if new_filename and new_filename != response.filename:
-                        print(f"📝 Archivo renombrado y movido: {response.filename} → {target_folder.name}/{final_filename}")
-                    else:
-                        print(f"📁 Archivo movido a: {target_folder.name}/{final_filename}")
-                        
-                except Exception as e:
-                    print(f"⚠️ Error moviendo archivo a carpeta organizada: {str(e)}")
-                    # Keep file in local downloads as fallback
-                    if new_filename and new_filename != response.filename:
-                        fallback_path = Path(download_path) / new_filename
-                        temp_file_path.rename(fallback_path)
-                        file_path = fallback_path
-                        print(f"📝 Archivo renombrado (local): {response.filename} → {new_filename}")
-                    else:
-                        file_path = temp_file_path
+                # Move/rename file
+                temp_file_path.rename(final_file_path)
+                file_path = final_file_path
+                
+                if final_filename != response.filename:
+                    print(f"📝 Archivo renombrado: {response.filename} → {final_filename}")
+                else:
+                    print(f"📁 Archivo guardado: {final_filename}")
                 
                 # Validate the Excel file using Polars
                 if validate_excel_file(file_path):

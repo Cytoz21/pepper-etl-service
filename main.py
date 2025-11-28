@@ -33,7 +33,13 @@ def main(page: ft.Page):
     # Load .env file if it exists
     if os.path.exists(env_path):
         load_dotenv(env_path)
-    else:
+    
+    # Load .env.local if it exists (overrides .env)
+    env_local_path = os.path.join(base_path, '.env.local')
+    if os.path.exists(env_local_path):
+        load_dotenv(env_local_path, override=True)
+    
+    if not os.path.exists(env_path) and not os.path.exists(env_local_path):
         # Fallback: try loading from current directory
         load_dotenv()
     
@@ -46,4 +52,19 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     # Run the Flet application
-    ft.app(target=main)
+    # For web deployment, use view=WEB_BROWSER and configure port
+    
+    # Check if running in production (Docker/Dokploy)
+    is_production = os.getenv('PRODUCTION', 'false').lower() == 'true'
+    
+    if is_production:
+        # Web server mode for Dokploy
+        ft.app(
+            target=main,
+            view=ft.AppView.WEB_BROWSER,
+            port=8080,
+            host="0.0.0.0"
+        )
+    else:
+        # Desktop mode for local development
+        ft.app(target=main)
