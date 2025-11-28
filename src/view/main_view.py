@@ -447,7 +447,9 @@ class MainView:
                     # We use a timestamp to avoid caching issues
                     import time
                     ts = int(time.time())
-                    self.page.launch_url(f"/assets/downloads/{filename}?t={ts}")
+                    # Flet serves assets from the root, so if assets_dir is src/assets,
+                    # and we put file in src/assets/downloads, the URL is /downloads/filename
+                    self.page.launch_url(f"/downloads/{filename}?t={ts}")
                 except Exception as e:
                     print(f"Error preparing web download for {filename}: {e}")
 
