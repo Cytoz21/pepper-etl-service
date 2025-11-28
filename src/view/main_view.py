@@ -407,9 +407,6 @@ class MainView:
         )
 
     async def _download_task(self, start_date, end_date, cartillas, fundo_code, path):
-        # Determine if we should zip files (Web mode)
-        should_zip = self.page.web
-        
         await self.controller.download_reports(
             start_date=start_date,
             end_date=end_date,
@@ -418,8 +415,7 @@ class MainView:
             download_path=path,
             progress_callback=self._on_progress,
             completion_callback=self._on_complete,
-            error_callback=self._on_error,
-            zip_output=should_zip
+            error_callback=self._on_error
         )
 
     def _on_progress(self, progress, message):
@@ -435,40 +431,25 @@ class MainView:
             self.status_text.value = f"Completado! Iniciando descarga de {len(files)} archivo(s)..."
             self.page.update()
             
-            if files:
-                zip_file_path = files[0]
-                filename = os.path.basename(zip_file_path)
-                
-                # In web mode, we need to serve the file from the assets directory
-                import shutil
-                
-                # Ensure assets/downloads exists
-                # We need to find the assets directory relative to this file
-                # src/view/main_view.py -> src/assets/downloads
-                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                assets_dir = os.path.join(base_dir, 'src', 'assets', 'downloads')
-                os.makedirs(assets_dir, exist_ok=True)
-                
+            import shutil
+            import time
+            
+            # Ensure assets/downloads exists
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            assets_dir = os.path.join(base_dir, 'src', 'assets', 'downloads')
+            os.makedirs(assets_dir, exist_ok=True)
+            
+            for f in files:
+                filename = os.path.basename(f)
                 dest_path = os.path.join(assets_dir, filename)
-                
                 try:
-                    shutil.copy2(zip_file_path, dest_path)
-                    
-                    # Launch download
-                    import time
+                    shutil.copy2(f, dest_path)
                     ts = int(time.time())
-                    # Flet serves assets from the root. If assets_dir is 'src/assets',
-                    # and we put file in 'src/assets/downloads', the URL is /downloads/filename
-                    # BUT, we need to check how main.py configures assets_dir.
-                    # main.py sets assets_dir to 'src/assets'.
-                    # So a file in 'src/assets/downloads/foo.zip' is available at '/downloads/foo.zip'
                     self.page.launch_url(f"/downloads/{filename}?t={ts}")
-                    self.status_text.value = f"Completado! Descargando {filename}..."
                 except Exception as e:
-                    print(f"Error preparing web download: {e}")
-                    self.status_text.value = f"Error al preparar descarga: {str(e)}"
-            else:
-                self.status_text.value = "Completado! No se generaron archivos para descargar."
+                    print(f"Error preparing web download for {filename}: {e}")
+
+            self.status_text.value = f"Completado! Revise sus descargas."
         else:
             self.status_text.value = f"Completado! {len(files)} archivos descargados."
         

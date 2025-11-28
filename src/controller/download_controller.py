@@ -34,8 +34,7 @@ class DownloadController:
         download_path: str,
         progress_callback: Optional[Callable[[float, str], None]] = None,
         completion_callback: Optional[Callable[[List[str]], None]] = None,
-        error_callback: Optional[Callable[[str], None]] = None,
-        zip_output: bool = False
+        error_callback: Optional[Callable[[str], None]] = None
     ) -> None:
         """
         Download all reports for the given date range
@@ -47,7 +46,6 @@ class DownloadController:
             completion_callback: Callback when download completes (file_paths: List[str])
             error_callback: Callback for error handling (error_message: str)
             download_path: Optional fallback path for local downloads (defaults to "downloads")
-            zip_output: If True, bundle all downloaded files into a single ZIP archive
         """
         if self._is_downloading:
             if error_callback:
@@ -92,29 +90,6 @@ class DownloadController:
                 cartilla_map=cartilla_map
             )
             
-            final_files = saved_files
-            
-            # Zip files if requested and we have files
-            if zip_output and saved_files:
-                if progress_callback:
-                    progress_callback(0.9, "Comprimiendo archivos...")
-                
-                import zipfile
-                import os
-                
-                # Create zip filename with timestamp
-                timestamp = date.today().strftime("%Y%m%d")
-                zip_filename = f"reportes_danper_{timestamp}.zip"
-                zip_path = os.path.join(download_path, zip_filename)
-                
-                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for file_path in saved_files:
-                        zipf.write(file_path, os.path.basename(file_path))
-                        # Optional: Remove original files if we only want the zip
-                        # os.remove(file_path) 
-                
-                final_files = [zip_path]
-            
             # Calculate statistics
             total_downloaded = len(responses)
             files_saved = len(saved_files)
@@ -122,13 +97,13 @@ class DownloadController:
             
             if progress_callback:
                 if files_omitted > 0:
-                    progress_callback(1.0, f"✅ Guardados: {len(final_files)} archivo(s) | 🚫 Omitidos: {files_omitted} (sin datos)")
+                    progress_callback(1.0, f"✅ Guardados: {files_saved} archivos | 🚫 Omitidos: {files_omitted} (sin datos)")
                 else:
-                    progress_callback(1.0, f"✅ Proceso completado: {len(final_files)} archivo(s) guardados")
+                    progress_callback(1.0, f"✅ Proceso completado: {files_saved} archivos guardados")
             
             # Notify completion
             if completion_callback:
-                completion_callback(final_files)
+                completion_callback(saved_files)
                 
         except Exception as e:
             error_message = f"Error durante la descarga: {str(e)}"
