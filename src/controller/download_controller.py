@@ -69,7 +69,7 @@ class DownloadController:
             
             # Create DateRange object
             from ..model import DateRange
-            date_range = DateRange(start_date=start_date, end_date=end_date)
+            date_range = DateRange(start=start_date, end=end_date)
             
             responses = await self.download_service.download_all_reports(
                 date_range=date_range,
