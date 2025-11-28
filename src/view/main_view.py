@@ -134,44 +134,45 @@ class MainView:
         )
         
         # Download Path Selection
-        self.file_picker = ft.FilePicker(on_result=self._on_directory_picked)
-        self.page.overlay.append(self.file_picker)
-        
-        self.path_field = ft.TextField(
+        # Directory picker (only for desktop)
+        self.directory_path_text = ft.TextField(
             label="Carpeta de Descarga",
-            value=os.path.join(os.getcwd(), "downloads"),
+            value=os.path.abspath(os.getcwd()),
             read_only=True,
             expand=True,
-            border_color=self.COLOR_PRIMARY,
-            text_size=12,
-            color=self.COLOR_TEXT,
-            bgcolor=self.COLOR_SURFACE,
-            label_style=ft.TextStyle(color=self.COLOR_TEXT_SECONDARY)
-        )
-        
-        self.browse_button = ft.ElevatedButton(
-            "Examinar...",
-            icon=ft.Icons.FOLDER_OPEN,
-            on_click=lambda _: self.file_picker.get_directory_path(),
-            style=ft.ButtonStyle(
-                color="white",
-                bgcolor=self.COLOR_PRIMARY,
-            )
+            bgcolor="#2b2d31",
+            border_color="#43474e",
+            color="white",
+            text_size=14,
+            height=45,
+            content_padding=10,
+            border_radius=8,
+            visible=not self.page.web
         )
 
-        # --- Action Components ---
-        self.download_button = ft.ElevatedButton(
-            text="DESCARGAR REPORTES",
-            icon=ft.Icons.DOWNLOAD,
-            style=ft.ButtonStyle(
-                color="white",
-                bgcolor=self.COLOR_PRIMARY,
-                padding=ft.padding.symmetric(horizontal=40, vertical=20),
-                shape=ft.RoundedRectangleBorder(radius=8),
-                elevation=5
-            ),
-            on_click=self._on_download_click
+        self.directory_picker = ft.FilePicker(on_result=self._on_directory_picked)
+        self.page.overlay.append(self.directory_picker)
+        
+        # Web mode info text
+        self.web_info_text = ft.Text(
+            "Los archivos se descargarán automáticamente en su navegador.",
+            color="#8e918f",
+            size=12,
+            italic=True,
+            visible=self.page.web
         )
+
+        self.browse_button = ft.IconButton(
+            icon=ft.icons.FOLDER_OPEN,
+            tooltip="Examinar...",
+            icon_color="white",
+            bgcolor="#43474e",
+            on_click=lambda _: self.directory_picker.get_directory_path(),
+            visible=not self.page.web
+        )
+        
+        # We map path_field to directory_path_text for compatibility with existing code
+        self.path_field = self.directory_path_text
         
         self.progress_bar = ft.ProgressBar(
             width=400,
@@ -244,7 +245,7 @@ class MainView:
             
             # Path
             ft.Text("4. Ubicación de Descarga:", weight=ft.FontWeight.BOLD, color=self.COLOR_TEXT),
-            ft.Row([self.path_field, self.browse_button]),
+            ft.Row([self.path_field, self.browse_button, self.web_info_text]),
         ], spacing=15)
         
         config_card = ft.Container(
