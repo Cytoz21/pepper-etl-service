@@ -30,7 +30,7 @@ class MainView:
         self.page.window_width = 900
         self.page.window_height = 800
         self.page.window_resizable = True
-        self.page.padding = 0
+        self.page.padding = 20
         self.page.scroll = ft.ScrollMode.AUTO
     
     def _create_components(self):
@@ -61,7 +61,9 @@ class MainView:
             border_color=self.COLOR_PRIMARY,
             color=self.COLOR_TEXT,
             bgcolor=self.COLOR_SURFACE,
-            label_style=ft.TextStyle(color=self.COLOR_TEXT_SECONDARY)
+            label_style=ft.TextStyle(color=self.COLOR_TEXT_SECONDARY),
+            border_radius=5,
+            focused_border_color=self.COLOR_PRIMARY
         )
         
         # Cartilla Selection (Checkbox List)
@@ -81,7 +83,7 @@ class MainView:
         self.cartilla_list_container = ft.Column(
             controls=self.cartilla_checkboxes,
             scroll=ft.ScrollMode.AUTO,
-            height=200
+            height=150
         )
         
         # Date Selection
@@ -117,7 +119,8 @@ class MainView:
             border_color=self.COLOR_PRIMARY,
             color=self.COLOR_TEXT,
             bgcolor=self.COLOR_SURFACE,
-            label_style=ft.TextStyle(color=self.COLOR_TEXT_SECONDARY)
+            label_style=ft.TextStyle(color=self.COLOR_TEXT_SECONDARY),
+            border_radius=5
         )
         
         self.end_date_field = ft.TextField(
@@ -130,7 +133,8 @@ class MainView:
             border_color=self.COLOR_PRIMARY,
             color=self.COLOR_TEXT,
             bgcolor=self.COLOR_SURFACE,
-            label_style=ft.TextStyle(color=self.COLOR_TEXT_SECONDARY)
+            label_style=ft.TextStyle(color=self.COLOR_TEXT_SECONDARY),
+            border_radius=5
         )
         
         # Download Path Selection
@@ -155,7 +159,7 @@ class MainView:
         
         # Web mode info text
         self.web_info_text = ft.Text(
-            "Los archivos se descargarán automáticamente en su navegador.",
+            "Los archivos se descargarán automáticamente en un archivo ZIP.",
             color="#8e918f",
             size=12,
             italic=True,
@@ -168,7 +172,8 @@ class MainView:
             icon_color="white",
             bgcolor="#43474e",
             on_click=lambda _: self.directory_picker.get_directory_path(),
-            visible=not self.page.web
+            visible=not self.page.web,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))
         )
         
         # We map path_field to directory_path_text for compatibility with existing code
@@ -192,13 +197,14 @@ class MainView:
             width=400,
             visible=False,
             color=self.COLOR_PRIMARY,
-            bgcolor=self.COLOR_SURFACE
+            bgcolor=self.COLOR_SURFACE,
+            bar_height=5
         )
         
         self.status_text = ft.Text("", size=12, color=self.COLOR_TEXT)
         
         # Results
-        self.results_container = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
+        self.results_container = ft.Column(scroll=ft.ScrollMode.AUTO)
         
         # Error Banner
         self.error_banner = ft.Container(
@@ -379,7 +385,7 @@ class MainView:
         except ValueError:
             self._show_error("Formato de fecha inválido.")
             return
-
+            
         is_valid, msg = self.controller.validate_date_range(start_date, end_date)
         if not is_valid:
             self._show_error(msg)
@@ -401,6 +407,9 @@ class MainView:
         )
 
     async def _download_task(self, start_date, end_date, cartillas, fundo_code, path):
+        # Determine if we should zip files (Web mode)
+        should_zip = self.page.web
+        
         await self.controller.download_reports(
             start_date=start_date,
             end_date=end_date,
@@ -409,7 +418,8 @@ class MainView:
             download_path=path,
             progress_callback=self._on_progress,
             completion_callback=self._on_complete,
-            error_callback=self._on_error
+            error_callback=self._on_error,
+            zip_output=should_zip
         )
 
     def _on_progress(self, progress, message):
@@ -422,38 +432,43 @@ class MainView:
         self.download_button.disabled = False
         
         if self.page.web:
-            self.status_text.value = f"Completado! Iniciando descarga de {len(files)} archivos..."
+            self.status_text.value = f"Completado! Iniciando descarga de {len(files)} archivo(s)..."
             self.page.update()
             
-            # In web mode, we need to serve the files
-            # Since we are running with Flet, we can use page.launch_url if the files are in assets
-            # Or we can use a trick: copy files to assets/downloads and launch url
-            
-            # Note: In a real production env with Nginx/Dokploy, we should map a volume
-            # For this implementation, we assume files are saved in a place accessible or we move them
-            
-            import shutil
-            
-            # Ensure assets/downloads exists
-            assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src', 'assets', 'downloads')
-            os.makedirs(assets_dir, exist_ok=True)
-            
-            for f in files:
-                filename = os.path.basename(f)
+            if files:
+                zip_file_path = files[0]
+                filename = os.path.basename(zip_file_path)
+                
+                # In web mode, we need to serve the file from the assets directory
+                import shutil
+                
+                # Ensure assets/downloads exists
+                # We need to find the assets directory relative to this file
+                # src/view/main_view.py -> src/assets/downloads
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                assets_dir = os.path.join(base_dir, 'src', 'assets', 'downloads')
+                os.makedirs(assets_dir, exist_ok=True)
+                
                 dest_path = os.path.join(assets_dir, filename)
+                
                 try:
-                    shutil.copy2(f, dest_path)
+                    shutil.copy2(zip_file_path, dest_path)
+                    
                     # Launch download
-                    # We use a timestamp to avoid caching issues
                     import time
                     ts = int(time.time())
-                    # Flet serves assets from the root, so if assets_dir is src/assets,
-                    # and we put file in src/assets/downloads, the URL is /downloads/filename
-                    self.page.launch_url(f"/assets/downloads/{filename}?t={ts}")
+                    # Flet serves assets from the root. If assets_dir is 'src/assets',
+                    # and we put file in 'src/assets/downloads', the URL is /downloads/filename
+                    # BUT, we need to check how main.py configures assets_dir.
+                    # main.py sets assets_dir to 'src/assets'.
+                    # So a file in 'src/assets/downloads/foo.zip' is available at '/downloads/foo.zip'
+                    self.page.launch_url(f"/downloads/{filename}?t={ts}")
+                    self.status_text.value = f"Completado! Descargando {filename}..."
                 except Exception as e:
-                    print(f"Error preparing web download for {filename}: {e}")
-
-            self.status_text.value = f"Completado! Revise sus descargas."
+                    print(f"Error preparing web download: {e}")
+                    self.status_text.value = f"Error al preparar descarga: {str(e)}"
+            else:
+                self.status_text.value = "Completado! No se generaron archivos para descargar."
         else:
             self.status_text.value = f"Completado! {len(files)} archivos descargados."
         
