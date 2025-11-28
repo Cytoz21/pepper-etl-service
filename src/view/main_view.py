@@ -420,7 +420,40 @@ class MainView:
     def _on_complete(self, files):
         self.progress_bar.visible = False
         self.download_button.disabled = False
-        self.status_text.value = f"Completado! {len(files)} archivos descargados."
+        
+        if self.page.web:
+            self.status_text.value = f"Completado! Iniciando descarga de {len(files)} archivos..."
+            self.page.update()
+            
+            # In web mode, we need to serve the files
+            # Since we are running with Flet, we can use page.launch_url if the files are in assets
+            # Or we can use a trick: copy files to assets/downloads and launch url
+            
+            # Note: In a real production env with Nginx/Dokploy, we should map a volume
+            # For this implementation, we assume files are saved in a place accessible or we move them
+            
+            import shutil
+            
+            # Ensure assets/downloads exists
+            assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src', 'assets', 'downloads')
+            os.makedirs(assets_dir, exist_ok=True)
+            
+            for f in files:
+                filename = os.path.basename(f)
+                dest_path = os.path.join(assets_dir, filename)
+                try:
+                    shutil.copy2(f, dest_path)
+                    # Launch download
+                    # We use a timestamp to avoid caching issues
+                    import time
+                    ts = int(time.time())
+                    self.page.launch_url(f"/assets/downloads/{filename}?t={ts}")
+                except Exception as e:
+                    print(f"Error preparing web download for {filename}: {e}")
+
+            self.status_text.value = f"Completado! Revise sus descargas."
+        else:
+            self.status_text.value = f"Completado! {len(files)} archivos descargados."
         
         for f in files:
             self.results_container.controls.append(

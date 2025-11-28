@@ -76,6 +76,8 @@ class DownloadController:
             
             # Notify completion
             if completion_callback:
+                # In web mode, we might need to move files to assets or return relative paths
+                # For now, we return the absolute paths and let the View handle the logic
                 completion_callback(saved_files)
                 
         except Exception as e:
