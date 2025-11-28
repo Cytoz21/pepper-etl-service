@@ -449,7 +449,7 @@ class MainView:
                     ts = int(time.time())
                     # Flet serves assets from the root, so if assets_dir is src/assets,
                     # and we put file in src/assets/downloads, the URL is /downloads/filename
-                    self.page.launch_url(f"/downloads/{filename}?t={ts}")
+                    self.page.launch_url(f"/assets/downloads/{filename}?t={ts}")
                 except Exception as e:
                     print(f"Error preparing web download for {filename}: {e}")
 
