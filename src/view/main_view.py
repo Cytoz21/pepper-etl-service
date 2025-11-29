@@ -3,12 +3,14 @@ from datetime import date, datetime, timedelta
 from typing import List
 from ..controller import DownloadController
 import os
+from .config_dialog import ConfigDialog
 
 class MainView:
-    def __init__(self, page: ft.Page, logo_path: str = None):
+    def __init__(self, page: ft.Page, logo_path: str = None, automation_controller=None):
         self.page = page
         self.logo_path = logo_path or "src/assets/danper-logo.png"
         self.controller = DownloadController()
+        self.automation_controller = automation_controller
         
         # Modern Dark Theme Colors
         self.COLOR_PRIMARY = "#C41A1D"    # Danper Red
@@ -21,6 +23,7 @@ class MainView:
         self._setup_page()
         self._create_components()
         self._build_layout()
+        self._start_clock()
     
     def _setup_page(self):
         """Configure page properties"""
@@ -48,6 +51,20 @@ class MainView:
             size=24,
             weight=ft.FontWeight.BOLD,
             color=self.COLOR_PRIMARY
+        )
+        
+        # Clock component
+        self.clock_text = ft.Text(
+            datetime.now().strftime("%H:%M:%S"),
+            size=18,
+            weight=ft.FontWeight.W_500,
+            color=self.COLOR_TEXT,
+        )
+        
+        self.date_text = ft.Text(
+            datetime.now().strftime("%d/%m/%Y"),
+            size=12,
+            color=self.COLOR_TEXT_SECONDARY,
         )
         
         # --- Configuration Components ---
@@ -219,10 +236,35 @@ class MainView:
     def _build_layout(self):
         """Build the main layout"""
         
+        # Config Button (Only if automation controller is available)
+        header_actions = [
+            ft.Column(
+                [
+                    self.clock_text,
+                    self.date_text
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.END,
+                spacing=2
+            )
+        ]
+        
+        if self.automation_controller:
+            config_btn = ft.IconButton(
+                icon=ft.Icons.SETTINGS,
+                tooltip="Configuración de Automatización",
+                icon_color=self.COLOR_TEXT_SECONDARY,
+                on_click=self._open_config_dialog
+            )
+            header_actions.insert(0, config_btn)
+
         # Header
         header = ft.Container(
             content=ft.Row(
-                [self.logo, self.title],
+                [
+                    self.logo,
+                    self.title,
+                    ft.Row(header_actions, spacing=15, alignment=ft.MainAxisAlignment.END)
+                ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             ),
             padding=ft.padding.symmetric(horizontal=20, vertical=15),
@@ -471,4 +513,24 @@ class MainView:
 
     def _hide_error(self):
         self.error_banner.visible = False
+        self.page.update()
+    
+    def _start_clock(self):
+        """Start the clock update loop"""
+        import asyncio
+        
+        async def update_clock():
+            while True:
+                now = datetime.now()
+                self.clock_text.value = now.strftime("%H:%M:%S")
+                self.date_text.value = now.strftime("%d/%m/%Y")
+                self.page.update()
+                await asyncio.sleep(1)
+        
+        self.page.run_task(update_clock)
+
+    def _open_config_dialog(self, e):
+        dialog = ConfigDialog(self.page, self.automation_controller)
+        self.page.dialog = dialog
+        dialog.open = True
         self.page.update()

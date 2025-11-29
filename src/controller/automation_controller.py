@@ -21,6 +21,11 @@ class AutomationController:
             self.drive_service = GoogleDriveService(
                 self.config.get("service_account_file", "service_account.json")
             )
+        self.scheduler_service = None
+
+    def set_scheduler_service(self, scheduler_service):
+        """Inject scheduler service dependency"""
+        self.scheduler_service = scheduler_service
 
     def _load_config(self) -> Dict[str, Any]:
         """Load automation configuration"""
@@ -34,6 +39,62 @@ class AutomationController:
         except Exception as e:
             print(f"❌ Error loading config: {str(e)}")
             return {}
+
+    def get_config(self) -> Dict[str, Any]:
+        """Get current configuration"""
+        return self.config
+
+    def schedule_jobs(self):
+        """Schedule all configured jobs"""
+        if not self.scheduler_service:
+            return
+            
+        schedule_time = self.config.get("schedule_time", "06:00")
+        
+        # Handle list of times
+        if isinstance(schedule_time, list):
+            for i, time_str in enumerate(schedule_time):
+                self.scheduler_service.add_daily_job(
+                    self.run_daily_download,
+                    time_str,
+                    id=f"daily_download_{i}"
+                )
+        else:
+            # Single time
+            self.scheduler_service.add_daily_job(
+                self.run_daily_download,
+                schedule_time
+            )
+
+    def update_config(self, schedule_time: Any, reports_config: List[Dict[str, Any]]) -> bool:
+        """
+        Update configuration and reschedule if needed
+        
+        Args:
+            schedule_time: New schedule time (HH:MM) or list of times
+            reports_config: List of report configurations
+        """
+        try:
+            # Update config object
+            self.config["schedule_time"] = schedule_time
+            self.config["reports"] = reports_config
+            
+            # Save to file
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=4)
+            
+            print("✅ Configuration saved successfully")
+            
+            # Reschedule if scheduler is available
+            if self.scheduler_service:
+                print(f"🔄 Rescheduling jobs for {schedule_time}")
+                self.schedule_jobs()
+                
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error updating config: {str(e)}")
+            return False
 
     async def run_daily_download(self):
         """Execute the daily download routine"""
@@ -51,7 +112,9 @@ class AutomationController:
 
         today = now_peru.date()
         
-        # Set date range to strictly today as requested
+        today = now_peru.date()
+        
+        # Set date range to today only
         date_range = DateRange(start=today, end=today)
         
         for report_config in reports:
@@ -71,8 +134,28 @@ class AutomationController:
                     fundo_code=fundo_code
                 )
                 
+                # Ensure directory exists
+                save_dir = Path(local_path)
+                save_dir.mkdir(parents=True, exist_ok=True)
+                
                 if not responses:
                     print(f"⚠️ No data found for {abbreviation}")
+                    # Create a note file explaining no data was found
+                    timestamp = now_peru.strftime("%Y%m%d_%H%M%S")
+                    note_filename = f"{abbreviation}_{timestamp}_NO_DATA.txt"
+                    note_path = save_dir / note_filename
+                    
+                    with open(note_path, 'w', encoding='utf-8') as f:
+                        f.write(f"No se encontraron datos para el reporte {abbreviation} (Cartilla {cartilla_id}) en la fecha {today}.\n")
+                        f.write(f"Hora de ejecución: {now_peru}\n")
+                    
+                    print(f"📝 Created note file: {note_path}")
+                    
+                    # Upload note to Drive if enabled
+                    if self.drive_service and drive_folder_id:
+                        print(f"☁️ Uploading note to Drive folder {drive_folder_id}...")
+                        self.drive_service.upload_file(str(note_path), drive_folder_id)
+                    
                     continue
                 
                 # Process downloaded file

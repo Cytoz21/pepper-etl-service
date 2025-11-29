@@ -2,14 +2,19 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from typing import Callable
 import logging
+from datetime import timedelta, timezone
 
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.WARNING)
 
 class SchedulerService:
     def __init__(self):
+        # Configure scheduler with Peru timezone default if possible, 
+        # but CronTrigger handles timezone specifically
         self.scheduler = AsyncIOScheduler()
         self.jobs = []
+        # Peru Timezone (UTC-5)
+        self.peru_tz = timezone(timedelta(hours=-5))
 
     def start(self):
         """Start the scheduler"""
@@ -39,7 +44,12 @@ class SchedulerService:
             if self.scheduler.get_job(id):
                 self.scheduler.remove_job(id)
             
-            trigger = CronTrigger(hour=hour, minute=minute)
+            # Use fixed offset for Peru (UTC-5) to avoid pytz dependency if not present
+            trigger = CronTrigger(
+                hour=hour, 
+                minute=minute, 
+                timezone=self.peru_tz
+            )
             
             self.scheduler.add_job(
                 func,
@@ -47,9 +57,10 @@ class SchedulerService:
                 id=id,
                 name=f"Daily download at {time_str}"
             )
-            print(f"📅 Job '{id}' scheduled for {time_str} daily")
+            print(f"📅 Job '{id}' scheduled for {time_str} daily (Peru Time)")
             
         except ValueError:
             print(f"❌ Invalid time format: {time_str}. Use HH:MM")
         except Exception as e:
             print(f"❌ Error scheduling job: {str(e)}")
+
