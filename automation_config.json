@@ -1,21 +1,14 @@
 {
-    "schedule_time": "06:00",
+    "schedule_time": "17:45",
     "google_drive_enabled": false,
     "service_account_file": "service_account.json",
     "reports": [
         {
             "cartilla_id": 478,
             "abbreviation": "PROY_FEN_PIM",
-            "local_path": "downloads/proyecciones",
-            "drive_folder_id": "YOUR_DRIVE_FOLDER_ID_HERE",
+            "local_path": "Pimientos/Bot",
+            "drive_folder_id": "1-V4d2pzu_wx0WYYjxK1L6BhB2q-kvuUc",
             "fundo_code": "238"
-        },
-        {
-            "cartilla_id": 623,
-            "abbreviation": "FEN_VAR_ENS_PIM",
-            "local_path": "downloads/fenologia",
-            "drive_folder_id": "YOUR_DRIVE_FOLDER_ID_HERE",
-            "fundo_code": "239"
         }
     ]
 }
