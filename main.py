@@ -94,12 +94,129 @@ if __name__ == "__main__":
     # For web deployment, use view=WEB_BROWSER and configure port
     
     # Check if running in production (Docker/Dokploy)
+import flet as ft
+from dotenv import load_dotenv
+import os
+import sys
+from src.view import MainView, LoginView
+
+
+def get_asset_path(asset_name):
+    """Get the correct path to an asset file, works both in dev and compiled"""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        base_path = sys._MEIPASS
+    else:
+        # Running as script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    return os.path.join(base_path, 'src', 'assets', asset_name)
+
+
+def main(page: ft.Page):
+    """Main application entry point"""
+    # Load environment variables from .env file
+    # Try multiple locations to support both dev and compiled environments
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        base_path = sys._MEIPASS
+        env_path = os.path.join(base_path, '.env')
+    else:
+        # Running as script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        env_path = os.path.join(base_path, '.env')
+    
+    # Load .env file if it exists
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+    
+    # Load .env.local if it exists (overrides .env)
+    env_local_path = os.path.join(base_path, '.env.local')
+    if os.path.exists(env_local_path):
+        load_dotenv(env_local_path, override=True)
+    
+    if not os.path.exists(env_path) and not os.path.exists(env_local_path):
+        # Fallback: try loading from current directory
+        load_dotenv()
+    
+    # Get asset paths
+    logo_path = get_asset_path('danper-logo.png')
+    
+    # Store logo path in page for LoginView access
+    page.logo_path = logo_path
+    
+    def route_change(route):
+        page.views.clear()
+        
+        # Check authentication
+        is_authenticated = page.session.get("authenticated")
+        
+        if page.route == "/login":
+            page.views.append(LoginView(page))
+        elif not is_authenticated:
+            page.go("/login")
+        else:
+            # Main App View
+            main_view_obj = ft.View(
+                "/",
+                padding=0,
+                bgcolor="#121212"
+            )
+            
+            # Initialize MainView
+            main_view_instance = MainView(page, logo_path=logo_path)
+            
+            # Add layout to view
+            main_view_obj.controls.append(main_view_instance.layout)
+            
+            page.views.append(main_view_obj)
+            
+        page.update()
+
+    def view_pop(view):
+        page.views.pop()
+        top_view = page.views[-1]
+        page.go(top_view.route)
+
+    page.on_route_change = route_change
+    page.on_view_pop = view_pop
+    
+    # Start at root (will redirect to login if not auth)
+    page.go("/")
+
+
+if __name__ == "__main__":
+    # Run the Flet application
+    # For web deployment, use view=WEB_BROWSER and configure port
+    
+    # Check if running in production (Docker/Dokploy)
     is_production = os.getenv('PRODUCTION', 'false').lower() == 'true'
     
     # Ensure assets directory is correctly set
     # Assuming assets are in src/assets
     assets_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src', 'assets')
     
+    # Initialize Automation
+    try:
+        from src.controller.automation_controller import AutomationController
+        from src.service.scheduler_service import SchedulerService
+        
+        automation_controller = AutomationController()
+        scheduler_service = SchedulerService()
+        
+        # Schedule the job
+        schedule_time = automation_controller.config.get("schedule_time", "06:00")
+        scheduler_service.add_daily_job(
+            automation_controller.run_daily_download, 
+            schedule_time
+        )
+        
+        # Start scheduler
+        scheduler_service.start()
+        
+    except Exception as e:
+        print(f"❌ Failed to initialize automation: {str(e)}")
+
     if is_production:
         # Web server mode for Dokploy
         ft.app(
