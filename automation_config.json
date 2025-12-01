@@ -1,8 +1,8 @@
 {
     "schedule_time": [
-        "18:30",
-        "18:40",
-        "18:50"
+        "01:10",
+        "01:15",
+        "01:20"
     ],
     "google_drive_enabled": true,
     "service_account_file": "service_account.json",
