@@ -59,8 +59,8 @@ def download_report(fundo, cartilla, date_str):
         'prmstrRUCEmpresa': '20170040938',
         'prmstrFundo': fundo['code'],
         'prmintCartilla': str(cartilla['code']),
-        'prmdatFechaInicio': date_str,
-        'prmdatFechaFin': date_str
+        'prmdatFechaInicio': "2025-11-28",
+        'prmdatFechaFin': "2025-11-28"
     }
     
     headers = {'Authorization': AUTHORIZATION}
@@ -170,3 +170,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
